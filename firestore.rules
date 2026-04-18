@@ -1,0 +1,91 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 0. Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    
+    // Common size limits
+    function isValidString(val, max) { return val is string && val.size() <= max; }
+    
+    // --- Validation Helpers ---
+    
+    function isValidUser(data) {
+      return data.keys().hasAll(['fullName', 'username', 'milestones']) &&
+             isValidString(data.fullName, 100) &&
+             isValidString(data.username, 50) &&
+             data.milestones is map &&
+             (data.matchedJobId == null || isValidString(data.matchedJobId, 100)) &&
+             (!('points' in data) || data.points is number) &&
+             (!('role' in data) || data.role in ['admin', 'user']);
+    }
+
+    function isValidTodo(data) {
+      return data.keys().hasAll(['text', 'priority', 'completed']) &&
+             isValidString(data.text, 500) &&
+             data.priority in ['High', 'Medium', 'Low'] &&
+             data.completed is bool;
+    }
+
+    function isValidApplication(data) {
+      return data.keys().hasAll(['company', 'role', 'status']) &&
+             isValidString(data.company, 100) &&
+             isValidString(data.role, 100) &&
+             data.status in ['Applied', 'Interview', 'Offer', 'Rejected'];
+    }
+
+    // --- Collection Routes ---
+
+    // Connection Test
+    match /test/connection {
+      allow get: if isSignedIn();
+    }
+
+    // Users
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming()) && incoming().role == 'user';
+      
+      allow update: if isOwner(userId) && isValidUser(incoming()) && (
+        // Action: Profile Update
+        (incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'username', 'education', 'country', 'currentRole', 'interests', 'careerPlan', 'profileImage'])) ||
+        // Action: Career Matching
+        (incoming().diff(existing()).affectedKeys().hasOnly(['matchedJobId', 'milestones'])) ||
+        // Action: Progression
+        (incoming().diff(existing()).affectedKeys().hasOnly(['points', 'badges', 'quizResults']))
+      ) && incoming().role == existing().role; // Prevent role escalation
+    }
+
+    // Subcollections: Todos
+    match /users/{userId}/todos/{todoId} {
+      allow list: if isOwner(userId);
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidTodo(incoming()) && isValidId(todoId);
+      allow update: if isOwner(userId) && isValidTodo(incoming()) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['text', 'priority', 'completed'])
+      );
+      allow delete: if isOwner(userId);
+    }
+
+    // Subcollections: Applications
+    match /users/{userId}/applications/{appId} {
+      allow list: if isOwner(userId);
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidApplication(incoming()) && isValidId(appId);
+      allow update: if isOwner(userId) && isValidApplication(incoming()) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'date', 'link'])
+      );
+      allow delete: if isOwner(userId);
+    }
+  }
+}

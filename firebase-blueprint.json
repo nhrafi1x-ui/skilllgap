@@ -1,0 +1,77 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User account information and career progress.",
+      "type": "object",
+      "properties": {
+        "fullName": { "type": "string" },
+        "username": { "type": "string" },
+        "education": { "type": "string" },
+        "country": { "type": "string" },
+        "currentRole": { "type": "string" },
+        "interests": { "type": "string" },
+        "careerPlan": { "type": "string" },
+        "matchedJobId": { "type": ["string", "null"] },
+        "milestones": { 
+          "type": "object",
+          "properties": {
+            "discovery": { "type": "boolean" },
+            "skills": { "type": "boolean" },
+            "projects": { "type": "boolean" },
+            "docs": { "type": "boolean" },
+            "apply": { "type": "boolean" },
+            "hired": { "type": "boolean" }
+          }
+        },
+        "points": { "type": "number" },
+        "badges": { "type": "array", "items": { "type": "string" } },
+        "role": { "type": "string", "enum": ["admin", "user"] }
+      },
+      "required": ["fullName", "username", "milestones"]
+    },
+    "Todo": {
+      "title": "Todo Item",
+      "description": "A task for the user's career roadmap.",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string" },
+        "priority": { "type": "string", "enum": ["High", "Medium", "Low"] },
+        "completed": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["text", "priority", "completed"]
+    },
+    "Application": {
+      "title": "Job Application",
+      "description": "A job application being tracked by the user.",
+      "type": "object",
+      "properties": {
+        "company": { "type": "string" },
+        "role": { "type": "string" },
+        "status": { "type": "string", "enum": ["Applied", "Interview", "Offer", "Rejected"] },
+        "date": { "type": "string" },
+        "link": { "type": "string" }
+      },
+      "required": ["company", "role", "status"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "Top-level user profile."
+    },
+    "users/{userId}/todos/{todoId}": {
+      "schema": "Todo",
+      "description": "User-specific tasks."
+    },
+    "users/{userId}/applications/{appId}": {
+      "schema": "Application",
+      "description": "User-specific job applications."
+    },
+    "test/connection": {
+      "schema": { "type": "object", "properties": { "status": { "type": "string" } } },
+      "description": "Diagnostic document for connection testing."
+    }
+  }
+}
