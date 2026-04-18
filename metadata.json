@@ -1,5 +1,5 @@
 {
-  "name": "Remix: SkillGAP ",
+  "name": "SkillGAP ",
   "description": "A career path finder and skill gap tracker with personalized roadmaps, interactive quizzes, and modern tech resources.",
   "requestFramePermissions": ["microphone"],
   "majorCapabilities": []

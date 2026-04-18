@@ -1,8 +1,19 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import * as authSDK from "firebase/auth";
 import * as firestoreSDK from "firebase/firestore";
-import firebaseConfig from "../firebase-applet-config.json";
+import staticFirebaseConfig from "../firebase-applet-config.json";
 import { mockAuth, mockDb } from "./lib/mockFirebase";
+
+// Allow environment variable overrides (useful for Netlify deployment)
+const firebaseConfig = {
+    ...staticFirebaseConfig,
+    apiKey: (import.meta as any).env.VITE_FIREBASE_API_KEY || staticFirebaseConfig.apiKey,
+    authDomain: (import.meta as any).env.VITE_FIREBASE_AUTH_DOMAIN || staticFirebaseConfig.authDomain,
+    projectId: (import.meta as any).env.VITE_FIREBASE_PROJECT_ID || staticFirebaseConfig.projectId,
+    storageBucket: (import.meta as any).env.VITE_FIREBASE_STORAGE_BUCKET || staticFirebaseConfig.storageBucket,
+    messagingSenderId: (import.meta as any).env.VITE_FIREBASE_MESSAGING_SENDER_ID || staticFirebaseConfig.messagingSenderId,
+    appId: (import.meta as any).env.VITE_FIREBASE_APP_ID || staticFirebaseConfig.appId,
+};
 
 // Check if we should use mock (if keys are placeholder or if we want to ensure offline stability)
 const useMock = !firebaseConfig.apiKey || 
